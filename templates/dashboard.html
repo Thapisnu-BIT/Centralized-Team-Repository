@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Central Team File Repository (With Versioning)</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; color: #333; }}
+        .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
+        .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; }}
+        .upload-section {{ margin: 20px 0; padding: 15px; background: #e9ecef; border-radius: 6px; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+        th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
+        th {{ background-color: #f1f1f1; }}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>Central Repository <span style="font-size:14px; color:#777; font-weight:normal;">Git-Style Version Control</span></h2>
+        <div>
+            <span>Logged in as: <strong>{username}</strong></span> | 
+            <a href="/logout" style="background: #dc3545; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px;">Logout</a>
+        </div>
+    </div>
+    {alert_div}
+    <div class="upload-section">
+        <h3>Upload File</h3>
+        <p style="font-size:12px; color:#666; margin-top:-10px;">Uploading an existing file name will automatically create a new version (v2, v3, etc.) instead of overwriting it.</p>
+        <form method="POST" action="/upload" enctype="multipart/form-data">
+            <input type="file" name="repo_file" required>
+            <button type="submit" style="background: #007bff; border: none; color: white; cursor: pointer; padding: 8px 16px; border-radius: 4px;">Upload File</button>
+        </form>
+    </div>
+    <h3>Available Files</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>Latest Version</th>
+                <th>Size</th>
+                <th>Last Updated By</th>
+                <th>Upload Date</th>
+                <th style="text-align:right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>{table_rows}</tbody>
+    </table>
+</div>
+</body>
+</html>
