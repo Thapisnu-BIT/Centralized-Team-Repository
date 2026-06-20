@@ -2,49 +2,84 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Central Team File Repository (With Versioning)</title>
+    <title>Central Team File Repository</title>
     <style>
-        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; color: #333; }}
-        .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
-        .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; }}
-        .upload-section {{ margin: 20px 0; padding: 15px; background: #e9ecef; border-radius: 6px; }}
+        body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f8f9fa; color: #333; display: flex; height: 100vh; overflow: hidden; }}
+        .sidebar {{ width: 260px; background: #1e293b; color: #f8fafc; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; }}
+        .sidebar h3 {{ margin-top: 0; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }}
+        .project-list {{ list-style: none; padding: 0; margin: 15px 0; flex-grow: 1; overflow-y: auto; }}
+        .project-item a {{ display: block; padding: 10px; color: #cbd5e1; text-decoration: none; border-radius: 6px; margin-bottom: 5px; font-weight: 500; }}
+        .project-item.active a {{ background: #3b82f6; color: white; }}
+        .project-item a:hover:not(.active a) {{ background: #334155; color: white; }}
+        .new-project-form input {{ width: 100%; padding: 8px; border: 1px solid #334155; background: #0f172a; color: white; border-radius: 4px; box-sizing: border-box; margin-bottom: 8px; }}
+        .new-project-form button {{ width: 100%; padding: 8px; background: #10b981; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }}
+        
+        .main-content {{ flex-grow: 1; padding: 30px; overflow-y: auto; box-sizing: border-box; }}
+        .container {{ max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
+        .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }}
+        .upload-section {{ padding: 20px; background: #f1f5f9; border-radius: 6px; margin-bottom: 25px; }}
         table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-        th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
-        th {{ background-color: #f1f1f1; }}
+        th, td {{ padding: 14px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }}
+        th {{ background-color: #f8fafc; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 12px; }}
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <h2>Central Repository <span style="font-size:14px; color:#777; font-weight:normal;">Git-Style Version Control</span></h2>
-        <div>
-            <span>Logged in as: <strong>{username}</strong></span> | 
-            <a href="/logout" style="background: #dc3545; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px;">Logout</a>
-        </div>
+
+<div class="sidebar">
+    <div>
+        <h2>File Repo</h2>
+        <h3>📁 Projects Space</h3>
+        <ul class="project-list">
+            {project_list_items}
+        </ul>
     </div>
-    {alert_div}
-    <div class="upload-section">
-        <h3>Upload File</h3>
-        <p style="font-size:12px; color:#666; margin-top:-10px;">Uploading an existing file name will automatically create a new version (v2, v3, etc.) instead of overwriting it.</p>
-        <form method="POST" action="/upload" enctype="multipart/form-data">
-            <input type="file" name="repo_file" required>
-            <button type="submit" style="background: #007bff; border: none; color: white; cursor: pointer; padding: 8px 16px; border-radius: 4px;">Upload File</button>
+    <div class="new-project-form">
+        <h3>➕ Create Project</h3>
+        <form method="POST" action="/create-project">
+            <input type="text" name="project_name" placeholder="Project Name..." required pattern="[A-Za-z0-9_\-]+">
+            <button type="submit">Create</button>
         </form>
     </div>
-    <h3>Available Files</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>File Name</th>
-                <th>Latest Version</th>
-                <th>Size</th>
-                <th>Last Updated By</th>
-                <th>Upload Date</th>
-                <th style="text-align:right;">Actions</th>
-            </tr>
-        </thead>
-        <tbody>{table_rows}</tbody>
-    </table>
 </div>
+
+<div class="main-content">
+    <div class="container">
+        <div class="header">
+            <h2>Active Space: <span style="color:#2563eb;">{active_project}</span></h2>
+            <div>
+                <span>Logged in as: <strong>{username}</strong></span> | 
+                <a href="/logout" style="background: #dc3545; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-left: 10px;">Logout</a>
+            </div>
+        </div>
+        
+        {alert_div}
+        
+        <div class="upload-section">
+            <h3>Upload to target project space</h3>
+            <p style="font-size:12px; color:#666; margin-top:-10px;">Duplicate names uploaded within this project partition will dynamically generate a sequential v2, v3 history file stack.</p>
+            <form method="POST" action="/upload" enctype="multipart/form-data">
+                <input type="hidden" name="active_project" value="{active_project}">
+                <input type="file" name="repo_file" required>
+                <button type="submit" style="background: #2563eb; border: none; color: white; cursor: pointer; padding: 8px 16px; border-radius: 4px; font-weight: bold;">Upload File</button>
+            </form>
+        </div>
+        
+        <h3>Tracked Items</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Latest Version</th>
+                    <th>Size</th>
+                    <th>Last Updated By</th>
+                    <th>Upload Date</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>{table_rows}</tbody>
+        </table>
+    </div>
+</div>
+
 </body>
 </html>

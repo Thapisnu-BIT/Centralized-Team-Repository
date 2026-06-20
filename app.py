@@ -11,7 +11,7 @@ DB_FILE = 'repository.db'
 UPLOAD_DIR = 'uploads'
 TEMPLATE_DIR = 'templates'
 ADMIN_USER = 'team_admin'
-ADMIN_PASS = 'Password123'  # Change this for security!
+ADMIN_PASS = 'Password123'
 
 SESSIONS = {}
 
@@ -19,9 +19,11 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
+        # Added tracking support partition 'project' 
         conn.execute('''
             CREATE TABLE IF NOT EXISTS files (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project TEXT NOT NULL DEFAULT 'Default',
                 filename TEXT NOT NULL,
                 filepath TEXT NOT NULL,
                 filesize INTEGER NOT NULL,
@@ -45,7 +47,6 @@ def sanitize_filename(filename):
     return os.path.basename(filename).replace("/", "").replace("\\", "").replace('"', '')
 
 def render_template(template_name, context):
-    """Reads an HTML file from the templates folder and interpolates data."""
     template_path = os.path.join(TEMPLATE_DIR, template_name)
     with open(template_path, 'r', encoding='utf-8') as f:
         html_content = f.read()
@@ -55,7 +56,6 @@ def render_template(template_name, context):
 class RepositoryRequestHandler(BaseHTTPRequestHandler):
 
     def handle_error(self, request, client_address):
-        """Silences BrokenPipe errors gracefully when users cancel transfers."""
         import sys
         exc_type, exc_value, _ = sys.exc_info()
         if exc_type is BrokenPipeError or (exc_value and '[Errno 32]' in str(exc_value)):
@@ -107,6 +107,9 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
             self.redirect('/?msg=Logged+out')
             return
 
+        # Fetch active context parameters
+        active_project = query.get('project', ['Default'])[0]
+
         # Route: Download
         if path == '/download':
             file_id = query.get('id', [None])[0]
@@ -133,10 +136,10 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
                         except (BrokenPipeError, ConnectionResetError):
                             pass
                         return
-            self.redirect('/?error=File+not+found')
+            self.redirect(f'/?project={urllib.parse.quote(active_project)}&error=File+not+found')
             return
 
-        # Route: Delete File (or specific sub-version)
+        # Route: Delete File
         if path == '/delete':
             file_id = query.get('id', [None])[0]
             if file_id:
@@ -154,20 +157,33 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
                         conn.execute("DELETE FROM files WHERE id = ?", (file_id,))
                         conn.commit()
                         
-                    self.redirect(f'/?msg=Deleted+{urllib.parse.quote(filename)}+successfully')
+                    self.redirect(f'/?project={urllib.parse.quote(active_project)}&msg=Deleted+{urllib.parse.quote(filename)}+successfully')
                     return
-            self.redirect('/?error=Could+not+delete+file')
+            self.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Could+not+delete+file')
             return
 
         # Route: Dashboard UI
         with sqlite3.connect(DB_FILE) as conn:
+            # 1. Fetch available projects dynamically to build sidebar navigation menu maps
+            distinct_projects = conn.execute("SELECT DISTINCT project FROM files").fetchall()
+            project_pool = {row[0] for row in distinct_projects}
+            project_pool.add('Default')
+            if active_project not in project_pool:
+                project_pool.add(active_project)
+                
+            # 2. Filter target dashboard rows strictly based on contextual active project partitions
             latest_files = conn.execute('''
                 SELECT id, filename, filepath, filesize, uploaded_by, max(version) as latest_v, upload_time 
                 FROM files 
+                WHERE project = ?
                 GROUP BY filename 
                 ORDER BY upload_time DESC
-            ''').fetchall()
-            all_versions = conn.execute("SELECT id, filename, filepath, filesize, uploaded_by, version, upload_time FROM files ORDER BY version DESC").fetchall()
+            ''', (active_project,)).fetchall()
+            
+            all_versions = conn.execute(
+                "SELECT id, filename, filepath, filesize, uploaded_by, version, upload_time FROM files WHERE project = ? ORDER BY version DESC", 
+                (active_project,)
+            ).fetchall()
         
         msg = query.get('msg', [None])[0]
         err = query.get('error', [None])[0]
@@ -178,9 +194,15 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
             text_color = "#721c24" if err else "#155724"
             alert_div = f'<div style="background: {color}; color: {text_color}; padding: 10px; margin-bottom: 15px; border-radius: 4px;">{err or msg}</div>'
 
+        # Build project list navigation HTML
+        project_list_items = ""
+        for p_name in sorted(list(project_pool)):
+            active_class = "active" if p_name == active_project else ""
+            project_list_items += f'<li class="project-item {active_class}"><a href="/?project={urllib.parse.quote(p_name)}">📁 {p_name}</a></li>'
+
         table_rows = ""
         if not latest_files:
-            table_rows = '<tr><td colspan="6" style="text-align: center; color: #777;">No files uploaded yet.</td></tr>'
+            table_rows = '<tr><td colspan="6" style="text-align: center; color: #777;">No files uploaded in this project space yet.</td></tr>'
         else:
             for f in latest_files:
                 file_id, filename, filepath, filesize, uploaded_by, version, upload_time = f
@@ -197,8 +219,8 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
                             <td>Uploaded by {hv[4]}</td>
                             <td>{hv[6]}</td>
                             <td style="text-align:right;">
-                                <a href="/download?id={hv[0]}" style="color: #28a745; text-decoration:none; margin-right:15px;">Download v{hv[5]}</a>
-                                <a href="/delete?id={hv[0]}" onclick="return confirm('Delete this version completely?');" style="color: #dc3545; text-decoration:none; font-weight:bold;">× Delete This Version</a>
+                                <a href="/download?id={hv[0]}&project={urllib.parse.quote(active_project)}" style="color: #28a745; text-decoration:none; margin-right:15px;">Download v{hv[5]}</a>
+                                <a href="/delete?id={hv[0]}&project={urllib.parse.quote(active_project)}" onclick="return confirm('Delete this version completely?');" style="color: #dc3545; text-decoration:none; font-weight:bold;">× Delete This Version</a>
                             </td>
                         </tr>"""
                     history_rows += "</table></td></tr>"
@@ -215,14 +237,16 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
                     <td>{uploaded_by}</td>
                     <td>{upload_time}</td>
                     <td style="text-align:right;">
-                        <a href="/download?id={file_id}" style="background: #28a745; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-right: 5px;">Download Latest</a>
-                        <a href="/delete?id={file_id}" onclick="return confirm('Are you sure you want to delete this file and its history?');" style="background: #dc3545; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px;">Delete File</a>
+                        <a href="/download?id={file_id}&project={urllib.parse.quote(active_project)}" style="background: #28a745; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-right: 5px;">Download Latest</a>
+                        <a href="/delete?id={file_id}&project={urllib.parse.quote(active_project)}" onclick="return confirm('Are you sure you want to delete this file and its history?');" style="background: #dc3545; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px;">Delete File</a>
                     </td>
                 </tr>
                 {history_rows}"""
 
         html = render_template('dashboard.html', {
             'username': username,
+            'active_project': active_project,
+            'project_list_items': project_list_items,
             'alert_div': alert_div,
             'table_rows': table_rows
         })
@@ -261,6 +285,16 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
             self.redirect('/')
             return
 
+        # Route: Create New Project Space
+        if path == '/create-project':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            params = urllib.parse.parse_qs(post_data)
+            new_p_name = params.get('project_name', ['Default'])[0].strip()
+            # Redirect to the project route context space to initialize it cleanly
+            self.redirect(f'/?project={urllib.parse.quote(new_p_name)}&msg=Project+{urllib.parse.quote(new_p_name)}+initialized')
+            return
+
         if path == '/upload':
             content_type = self.headers.get('Content-Type', '')
             if 'multipart/form-data' in content_type:
@@ -270,16 +304,19 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
                 raw_data = self.rfile.read(content_length)
                 parts = raw_data.split(b'--' + boundary)
                 
+                # Pre-extract target active project field out of multi-part payload block stream 
+                target_project = "Default"
+                for part in parts:
+                    if b'name="active_project"' in part:
+                        target_project = part.split(b'\r\n\r\n')[1].strip().decode('utf-8')
+
                 for part in parts:
                     if b'Content-Disposition' in part and b'name="repo_file"' in part:
                         headers_part, file_body = part.split(b'\r\n\r\n', 1)
                         
-                        if file_body.endswith(b'\r\n'):
-                            file_body = file_body[:-2]
-                        if file_body.endswith(b'--'):
-                            file_body = file_body[:-2]
-                            if file_body.endswith(b'\r\n'):
-                                file_body = file_body[:-2]
+                        if file_body.endswith(b'\r\n'): file_body = file_body[:-2]
+                        if file_body.endswith(b'--'): file_body = file_body[:-2]
+                        if file_body.endswith(b'\r\n'): file_body = file_body[:-2]
 
                         header_str = headers_part.decode('utf-8', errors='ignore')
                         if 'filename="' in header_str:
@@ -290,7 +327,8 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
                             safe_name = sanitize_filename(orig_filename)
                             
                             with sqlite3.connect(DB_FILE) as conn:
-                                cursor = conn.execute("SELECT max(version) FROM files WHERE filename = ?", (orig_filename,))
+                                # Look up the highest existing version number strictly within this project space partition
+                                cursor = conn.execute("SELECT max(version) FROM files WHERE filename = ? AND project = ?", (orig_filename, target_project))
                                 row = cursor.fetchone()
                                 next_version = (row[0] + 1) if (row and row[0] is not None) else 1
                             
@@ -304,20 +342,21 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
                             
                             with sqlite3.connect(DB_FILE) as conn:
                                 conn.execute(
-                                    "INSERT INTO files (filename, filepath, filesize, uploaded_by, version) VALUES (?, ?, ?, ?, ?)",
-                                    (orig_filename, unique_name, file_size, username, next_version)
+                                    "INSERT INTO files (project, filename, filepath, filesize, uploaded_by, version) VALUES (?, ?, ?, ?, ?, ?)",
+                                    (target_project, orig_filename, unique_name, file_size, username, next_version)
                                 )
                                 conn.commit()
                                 
-                            self.redirect(f'/?msg=Uploaded+{urllib.parse.quote(orig_filename)}+(v{next_version})+successfully')
+                            self.redirect(f'/?project={urllib.parse.quote(target_project)}&msg=Uploaded+{urllib.parse.quote(orig_filename)}+(v{next_version})+successfully')
                             return
 
             self.redirect('/?error=Failed+to+process+upload')
 
+
 if __name__ == '__main__':
     server_address = ('', 8000)
     httpd = HTTPServer(server_address, RepositoryRequestHandler)
-    print("Serving Split HTML Repository on http://127.0.0.1:8000 ...")
+    print("Serving Split HTML Multi-Project Repository on http://127.0.0.1:8000 ...")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
