@@ -4,24 +4,91 @@
     <meta charset="UTF-8">
     <title>Central Team File Repository</title>
     <style>
-        body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f8f9fa; color: #333; display: flex; height: 100vh; overflow: hidden; }}
-        .sidebar {{ width: 260px; background: #1e293b; color: #f8fafc; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; }}
-        .sidebar h3 {{ margin-top: 0; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }}
-        .project-list {{ list-style: none; padding: 0; margin: 15px 0; flex-grow: 1; overflow-y: auto; }}
-        .project-item a {{ display: block; padding: 10px; color: #cbd5e1; text-decoration: none; border-radius: 6px; margin-bottom: 5px; font-weight: 500; }}
-        .project-item.active a {{ background: #3b82f6; color: white; }}
-        .project-item a:hover:not(.active a) {{ background: #334155; color: white; }}
-        .new-project-form input {{ width: 100%; padding: 8px; border: 1px solid #334155; background: #0f172a; color: white; border-radius: 4px; box-sizing: border-box; margin-bottom: 8px; }}
-        .new-project-form button {{ width: 100%; padding: 8px; background: #10b981; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }}
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f8f9fa; color: #333; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 260px; background: #1e293b; color: #f8fafc; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; }
+        .sidebar h2 { margin: 0 0 10px 0; color: #fff; font-size: 20px; }
+        .sidebar h3 { margin-top: 20px; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .project-list { list-style: none; padding: 0; margin: 15px 0; flex-grow: 1; overflow-y: auto; }
+        .project-item a { display: block; padding: 10px; color: #cbd5e1; text-decoration: none; border-radius: 6px; margin-bottom: 5px; font-weight: 500; }
+        .project-item.active a { background: #3b82f6; color: white; }
+        .project-item a:hover:not(.active a) { background: #334155; color: white; }
+        .new-project-form input { width: 100%; padding: 8px; border: 1px solid #334155; background: #0f172a; color: white; border-radius: 4px; box-sizing: border-box; margin-bottom: 8px; }
+        .new-project-form button { width: 100%; padding: 8px; background: #10b981; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
         
-        .main-content {{ flex-grow: 1; padding: 30px; overflow-y: auto; box-sizing: border-box; }}
-        .container {{ max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
-        .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }}
-        .upload-section {{ padding: 20px; background: #f1f5f9; border-radius: 6px; margin-bottom: 25px; }}
-        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-        th, td {{ padding: 14px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }}
-        th {{ background-color: #f8fafc; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 12px; }}
+        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; box-sizing: border-box; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .upload-section { padding: 20px; background: #f1f5f9; border-radius: 6px; margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 12px; }
+        
+        .upload-form-inline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 15px; }
+        .upload-form-inline input[type="text"] { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; min-width: 250px; font-size: 14px; }
+
+        /* Dialog Modal Styling Rules */
+        dialog { border: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); padding: 25px; width: 400px; max-width: 90%; }
+        dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+        dialog h3 { margin-top: 0; color: #1e293b; }
+        dialog select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; margin: 15px 0; font-size: 14px; background: white; }
+        .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
+        .dialog-actions button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
+    
+    <script>
+        function prepareUpload(event) {
+            event.preventDefault();
+            const form = event.target;
+            const fileInput = form.querySelector('input[type="file"]');
+            const customNameInput = form.querySelector('input[name="custom_filename"]');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("Please select a file first.");
+                return;
+            }
+            
+            const originalFile = fileInput.files[0];
+            let targetName = customNameInput.value.trim();
+            
+            if (targetName === "") {
+                form.submit();
+                return;
+            }
+            
+            const originalExt = originalFile.name.substring(originalFile.name.lastIndexOf('.'));
+            if (!targetName.toLowerCase().endsWith(originalExt.toLowerCase())) {
+                targetName += originalExt;
+            }
+            
+            const dataTransfer = new DataTransfer();
+            const renamedFile = new File([originalFile], targetName, { type: originalFile.type });
+            dataTransfer.items.add(renamedFile);
+            
+            fileInput.files = dataTransfer.files;
+            form.submit();
+        }
+
+        // Dialog Handler Utilities
+        defProject = "$active_project";
+        function openShareModal(fileId, filename) {
+            const modal = document.getElementById('share-modal');
+            document.getElementById('modal-filename').innerText = filename;
+            document.getElementById('modal-file-id').value = fileId;
+            modal.showModal();
+        }
+        function closeShareModal() {
+            document.getElementById('share-modal').close();
+        }
+        function submitShareForm() {
+            const fileId = document.getElementById('modal-file-id').value;
+            const targetUser = document.getElementById('modal-user-select').value;
+            if(!targetUser) {
+                alert("Please select a user first.");
+                return;
+            }
+            window.location.href = '/share?id=' + fileId + '&project=' + encodeURIComponent(defProject) + '&with=' + encodeURIComponent(targetUser);
+        }
+    </script>
 </head>
 <body>
 
@@ -30,13 +97,13 @@
         <h2>File Repo</h2>
         <h3>📁 Projects Space</h3>
         <ul class="project-list">
-            {project_list_items}
+            $project_list_items
         </ul>
     </div>
     <div class="new-project-form">
         <h3>➕ Create Project</h3>
         <form method="POST" action="/create-project">
-            <input type="text" name="project_name" placeholder="Project Name..." required pattern="[A-Za-z0-9_\-]+">
+            <input type="text" name="project_name" placeholder="Project Name..." required pattern="[A-Za-z0-9_\\-]+">
             <button type="submit">Create</button>
         </form>
     </div>
@@ -45,22 +112,22 @@
 <div class="main-content">
     <div class="container">
         <div class="header">
-            <h2>Active Space: <span style="color:#2563eb;">{active_project}</span></h2>
+            <h2>Active Space: <span style="color:#2563eb;">$active_project</span></h2>
             <div>
-                <span>Logged in as: <strong>{username}</strong></span> | 
+                <span>Logged in as: <strong>$username</strong></span> | 
                 <a href="/logout" style="background: #dc3545; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-left: 10px;">Logout</a>
             </div>
         </div>
         
-        {alert_div}
+        $alert_div
         
         <div class="upload-section">
             <h3>Upload to target project space</h3>
-            <p style="font-size:12px; color:#666; margin-top:-10px;">Duplicate names uploaded within this project partition will dynamically generate a sequential v2, v3 history file stack.</p>
-            <form method="POST" action="/upload" enctype="multipart/form-data">
-                <input type="hidden" name="active_project" value="{active_project}">
+            <form method="POST" action="/upload" enctype="multipart/form-data" onsubmit="prepareUpload(event)" class="upload-form-inline">
+                <input type="hidden" name="active_project" value="$active_project">
                 <input type="file" name="repo_file" required>
-                <button type="submit" style="background: #2563eb; border: none; color: white; cursor: pointer; padding: 8px 16px; border-radius: 4px; font-weight: bold;">Upload File</button>
+                <input type="text" name="custom_filename" placeholder="Optional: Rename file on save...">
+                <button type="submit" style="background: #2563eb; border: none; color: white; cursor: pointer; padding: 9px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;">Upload File</button>
             </form>
         </div>
         
@@ -71,15 +138,31 @@
                     <th>File Name</th>
                     <th>Latest Version</th>
                     <th>Size</th>
-                    <th>Last Updated By</th>
+                    <th>Owner</th>
                     <th>Upload Date</th>
                     <th style="text-align:right;">Actions</th>
                 </tr>
             </thead>
-            <tbody>{table_rows}</tbody>
+            <tbody>$table_rows</tbody>
         </table>
     </div>
 </div>
+
+<dialog id="share-modal">
+    <h3>Share Asset Access</h3>
+    <p>Grant visibility rights for: <strong id="modal-filename">filename.ext</strong></p>
+    
+    <input type="hidden" id="modal-file-id">
+    <select id="modal-user-select">
+        <option value="" disabled selected>-- Select Target Recipient Team Member --</option>
+        $user_options
+    </select>
+    
+    <div class="dialog-actions">
+        <button onclick="closeShareModal()" class="btn-secondary" style="background:#e2e8f0; color:#333;">Cancel</button>
+        <button onclick="submitShareForm()" class="btn-primary" style="background:#10b981; color:white;">Grant Access</button>
+    </div>
+</dialog>
 
 </body>
 </html>

@@ -4,8 +4,6 @@ import os
 DB_FILE = 'repository.db'
 UPLOAD_DIR = 'uploads'
 TEMPLATE_DIR = 'templates'
-ADMIN_USER = 'team_admin'
-ADMIN_PASS = 'Password123'
 
 # Global in-memory session tracking mapping
 SESSIONS = {}

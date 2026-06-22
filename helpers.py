@@ -1,4 +1,5 @@
 import os
+from string import Template  # Added for safer HTML interpolation
 from config import TEMPLATE_DIR
 
 def format_bytes(size):
@@ -14,8 +15,10 @@ def sanitize_filename(filename):
     return os.path.basename(filename).replace("/", "").replace("\\", "").replace('"', '')
 
 def render_template(template_name, context):
-    """Reads an HTML template and cleanly injects Python dictionary objects."""
+    """Reads an HTML template and cleanly injects Python dictionary objects using $ placeholders."""
     template_path = os.path.join(TEMPLATE_DIR, template_name)
     with open(template_path, 'r', encoding='utf-8') as f:
         html_content = f.read()
-    return html_content.format(**context)
+    
+    # Using safe_substitute avoids KeyError breaks from CSS/JS curly brackets
+    return Template(html_content).safe_substitute(context)
