@@ -4,35 +4,131 @@
     <meta charset="UTF-8">
     <title>Central Team File Repository</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f8f9fa; color: #333; display: flex; height: 100vh; overflow: hidden; }
-        .sidebar { width: 260px; background: #1e293b; color: #f8fafc; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; }
+        :root {
+            --bg-body: #f5f3ff;
+            --bg-sidebar: #1e1b4b;
+            --bg-sidebar-hover: #2e1065;
+            --bg-card: #ffffff;
+            --bg-upload: #f5f3ff;
+            --bg-input: #ffffff;
+            --bg-table-header: #f8fafc;
+            --bg-dialog: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --text-sidebar: #f8fafc;
+            --text-sidebar-item: #cbd5e1;
+            --text-sidebar-muted: #6b7280;
+            --border: #e2e8f0;
+            --border-light: #eee;
+            --border-input: #cbd5e1;
+            --shadow: 0 2px 5px rgba(0,0,0,0.05);
+            --shadow-dialog: 0 4px 15px rgba(0,0,0,0.2);
+            --overlay: rgba(0,0,0,0.5);
+            --accent: #7c3aed;
+            --accent-hover: #6d28d9;
+            --accent-light: #a78bfa;
+            --version-bg: #e2e8f0;
+            --row-hover: #fafaff;
+        }
+        [data-theme="dark"] {
+            --bg-body: #0c0820;
+            --bg-sidebar: #0a0718;
+            --bg-sidebar-hover: #1a1040;
+            --bg-card: #130c2e;
+            --bg-upload: #1a1040;
+            --bg-input: #1a1035;
+            --bg-table-header: #1a1040;
+            --bg-dialog: #1a1040;
+            --text-primary: #e8e0f0;
+            --text-secondary: #a78bfa;
+            --text-muted: #7c6a9a;
+            --text-sidebar: #f0e8ff;
+            --text-sidebar-item: #b8a8d8;
+            --text-sidebar-muted: #6b5a8a;
+            --border: #2d1b69;
+            --border-light: #2d1b69;
+            --border-input: #3d2b79;
+            --shadow: 0 2px 5px rgba(0,0,0,0.4);
+            --shadow-dialog: 0 4px 15px rgba(0,0,0,0.6);
+            --overlay: rgba(0,0,0,0.7);
+            --accent: #a78bfa;
+            --accent-hover: #8b70e0;
+            --accent-light: #7c3aed;
+            --version-bg: #2d1b69;
+            --row-hover: #1a1040;
+        }
+        * { transition: background-color 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.25s; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: var(--bg-body); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; }
+        #wrapper { display: flex; width: 100%; height: 100%; }
+        .sidebar { width: 260px; min-width: 0; background: var(--bg-sidebar); color: var(--text-sidebar); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; position: relative; }
+        .sidebar.transition { transition: width 0.25s ease; }
+        .sidebar.collapsed { width: 0 !important; padding: 0; }
+        .sidebar-resizer { width: 6px; cursor: ew-resize; position: absolute; right: 0; top: 0; bottom: 0; background: rgba(255, 255, 255, 0.1); }
+        .sidebar-toggle { position: absolute; top: 10px; right: -30px; background: var(--bg-sidebar); color: white; border: none; padding: 8px 10px; cursor: pointer; border-radius: 0 4px 4px 0; z-index: 100; }
+        .sidebar.collapsed .sidebar-toggle { right: -30px; border-radius: 0 4px 4px 0; }
+        .sidebar > *:not(.sidebar-toggle):not(.sidebar-resizer) { opacity: 1; transition: opacity 0.3s ease-in-out; }
+        .sidebar.collapsed > *:not(.sidebar-toggle):not(.sidebar-resizer) { opacity: 0; pointer-events: none; }
+        
         .sidebar h2 { margin: 0 0 10px 0; color: #fff; font-size: 20px; }
-        .sidebar h3 { margin-top: 20px; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .sidebar h3 { margin-top: 20px; color: var(--accent-light); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
         .project-list { list-style: none; padding: 0; margin: 15px 0; flex-grow: 1; overflow-y: auto; }
-        .project-item a { display: block; padding: 10px; color: #cbd5e1; text-decoration: none; border-radius: 6px; margin-bottom: 5px; font-weight: 500; }
-        .project-item.active a { background: #3b82f6; color: white; }
-        .project-item a:hover:not(.active a) { background: #334155; color: white; }
+        .project-item a { display: block; padding: 10px; color: var(--text-sidebar-item); text-decoration: none; border-radius: 6px; margin-bottom: 5px; font-weight: 500; }
+        .project-item.active a { background: var(--accent); color: white; }
+        .project-item a:hover:not(.active a) { background: var(--bg-sidebar-hover); color: white; }
         .new-project-form input { width: 100%; padding: 8px; border: 1px solid #334155; background: #0f172a; color: white; border-radius: 4px; box-sizing: border-box; margin-bottom: 8px; }
-        .new-project-form button { width: 100%; padding: 8px; background: #10b981; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .new-project-form button { width: 100%; padding: 8px; background: var(--accent); border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .new-project-form button:hover { background: var(--accent-hover); }
         
         .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; box-sizing: border-box; }
-        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-        .upload-section { padding: 20px; background: #f1f5f9; border-radius: 6px; margin-bottom: 25px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        th { background-color: #f8fafc; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 12px; }
+        .container { max-width: 1100px; margin: 0 auto; background: var(--bg-card); padding: 30px; border-radius: 8px; box-shadow: var(--shadow); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-light); padding-bottom: 15px; margin-bottom: 20px; }
+        .upload-section { padding: 20px; background: var(--bg-upload); border-radius: 6px; margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        th, td { padding: 10px 6px; text-align: left; border-bottom: 1px solid var(--border); word-wrap: break-word; font-size: 13px; }
+        tr:hover td { background: var(--row-hover); }
+        th { background: var(--bg-table-header); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 11px; }
+        th:nth-child(1) { width: 24%; }
+        th:nth-child(2) { width: 7%; }
+        th:nth-child(3) { width: 7%; }
+        th:nth-child(4) { width: 10%; }
+        th:nth-child(5) { width: 14%; }
+        th:nth-child(6) { width: 14%; }
+        th:nth-child(7) { width: 24%; }
+        .actions-grid { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+        .btn-action { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; text-decoration: none; cursor: pointer; border: none; transition: all 0.15s; }
+        .btn-action:hover { filter: brightness(1.15); transform: scale(1.1); }
+        .btn-action svg { width: 16px; height: 16px; fill: currentColor; }
+        .btn-share { background: #7c3aed; color: white; }
+        .btn-rename { background: #f59e0b; color: white; }
+        .btn-delete { background: #ef4444; color: white; }
+        .btn-download { background: #10b981; color: white; }
+        .btn-view { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; text-decoration: underline; padding: 0; white-space: nowrap; }
+        .version-badge { background: var(--version-bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: var(--text-primary); }
+        .badge-owner { color: var(--accent); font-size: 11px; }
+        .badge-shared { color: var(--text-muted); font-size: 11px; }
+        .history-wrap { background: transparent; }
+        .history-inner { width: 100%; margin-top: 5px; border: 1px solid var(--border); background: var(--bg-card); border-radius: 4px; }
+        .history-inner td { padding: 6px 10px; }
+        .file-row td { background: var(--bg-card); }
+        .history-toggle { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; text-decoration: underline; }
         
         .upload-form-inline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 15px; }
-        .upload-form-inline input[type="text"] { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; min-width: 250px; font-size: 14px; }
+        .upload-form-inline input[type="text"] { padding: 8px 12px; border: 1px solid var(--border-input); border-radius: 4px; min-width: 250px; font-size: 14px; background: var(--bg-input); color: var(--text-primary); }
 
-        /* Dialog Modal Styling Rules */
-        dialog { border: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); padding: 25px; width: 400px; max-width: 90%; }
-        dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
-        dialog h3 { margin-top: 0; color: #1e293b; }
-        dialog select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; margin: 15px 0; font-size: 14px; background: white; }
+        dialog { border: none; border-radius: 8px; box-shadow: var(--shadow-dialog); padding: 25px; width: 400px; max-width: 90%; background: var(--bg-dialog); color: var(--text-primary); }
+        dialog::backdrop { background: var(--overlay); }
+        dialog h3 { margin-top: 0; color: var(--text-primary); }
+        dialog select { width: 100%; padding: 10px; border: 1px solid var(--border-input); border-radius: 4px; margin: 15px 0; font-size: 14px; background: var(--bg-input); color: var(--text-primary); }
         .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
         .dialog-actions button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .dialog-actions button:last-child { background: var(--accent); color: white; }
+        .dialog-actions button:last-child:hover { background: var(--accent-hover); }
+
+        .theme-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+        .theme-toggle button { background: none; border: 1px solid rgba(255,255,255,0.2); color: var(--text-sidebar-item); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+        .theme-toggle button:hover { background: rgba(255,255,255,0.1); }
+        .theme-toggle svg { width: 14px; height: 14px; fill: currentColor; }
     </style>
     
     <script>
@@ -92,30 +188,39 @@
 </head>
 <body>
 
-<div class="sidebar">
-    <div>
-        <h2>File Repo</h2>
-        <h3>📁 Projects Space</h3>
-        <ul class="project-list">
-            $project_list_items
-        </ul>
+<div id="wrapper">
+    <div class="sidebar" id="sidebar">
+        <button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
+        <div class="sidebar-resizer" id="sidebar-resizer"></div>
+        <div>
+            <h2>File Repo</h2>
+            <h3>📁 Projects Space</h3>
+            <ul class="project-list">
+                $project_list_items
+            </ul>
+        <div class="theme-toggle">
+            <button id="theme-btn">
+                <svg viewBox="0 0 24 24" id="theme-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <span id="theme-label">Dark</span>
+            </button>
+        </div>
     </div>
     <div class="new-project-form">
-        <h3>➕ Create Project</h3>
-        <form method="POST" action="/create-project">
-            <input type="text" name="project_name" placeholder="Project Name..." required pattern="[A-Za-z0-9_\\-]+">
-            <button type="submit">Create</button>
-        </form>
+            <h3>➕ Create Project</h3>
+            <form method="POST" action="/create-project">
+                <input type="text" name="project_name" placeholder="Project Name..." required pattern="[A-Za-z0-9_\\-]+">
+                <button type="submit">Create</button>
+            </form>
+        </div>
     </div>
-</div>
 
-<div class="main-content">
+    <div class="main-content">
     <div class="container">
         <div class="header">
-            <h2>Active Space: <span style="color:#2563eb;">$active_project</span></h2>
+            <h2>Active Space: <span style="color:#7c3aed;">$active_project</span></h2>
             <div>
                 <span>Logged in as: <strong>$username</strong></span> | 
-                <a href="/logout" style="background: #dc3545; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-left: 10px;">Logout</a>
+                <a href="/logout" style="background: #7c3aed; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-left: 10px;">Logout</a>
             </div>
         </div>
         
@@ -127,7 +232,7 @@
                 <input type="hidden" name="active_project" value="$active_project">
                 <input type="file" name="repo_file" required>
                 <input type="text" name="custom_filename" placeholder="Optional: Rename file on save...">
-                <button type="submit" style="background: #2563eb; border: none; color: white; cursor: pointer; padding: 9px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;">Upload File</button>
+                <button type="submit" style="background: #7c3aed; border: none; color: white; cursor: pointer; padding: 9px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;">Upload File</button>
             </form>
         </div>
         
@@ -140,7 +245,8 @@
                     <th>Size</th>
                     <th>Owner</th>
                     <th>Upload Date</th>
-                    <th style="text-align:right;">Actions</th>
+                    <th>Shared With</th>
+                    <th style="text-align:right; white-space:nowrap;">Actions</th>
                 </tr>
             </thead>
             <tbody>$table_rows</tbody>
@@ -148,21 +254,153 @@
     </div>
 </div>
 
-<dialog id="share-modal">
-    <h3>Share Asset Access</h3>
+<script>
+    defProject = "$active_project";
+    function openShareModal(fileId, filename) {
+        document.getElementById('modal-filename').innerText = filename;
+        document.getElementById('modal-file-id').value = fileId;
+        document.getElementById('share-modal').showModal();
+    }
+    function closeShareModal() {
+        document.getElementById('share-modal').close();
+    }
+    function submitShareForm() {
+        const fileId = document.getElementById('modal-file-id').value;
+        const targetUser = document.getElementById('modal-user-select').value;
+        const privilege = document.getElementById('modal-privilege-select').value;
+        
+        if(!targetUser) {
+            alert("Please select a target user.");
+            return;
+        }
+        
+        // Append &privilege parameter dynamically into location redirection strings
+        window.location.href = '/share?id=' + fileId + 
+                               '&project=' + encodeURIComponent(defProject) + 
+                               '&with=' + encodeURIComponent(targetUser) + 
+                               '&privilege=' + encodeURIComponent(privilege);
+    }
+</script>
+
+        <dialog id="share-modal">
+        <h3>Share Asset Access</h3>
     <p>Grant visibility rights for: <strong id="modal-filename">filename.ext</strong></p>
     
     <input type="hidden" id="modal-file-id">
+    
+    <label>Team Member</label>
     <select id="modal-user-select">
-        <option value="" disabled selected>-- Select Target Recipient Team Member --</option>
+        <option value="" disabled selected>-- Select Target Recipient --</option>
         $user_options
     </select>
     
+    <label>Access Privilege Level</label>
+    <select id="modal-privilege-select">
+        <option value="Viewer">Viewer (Can read & download only)</option>
+        <option value="Editor">Editor (Can rename, rewrite & delete versions)</option>
+    </select>
+    
     <div class="dialog-actions">
-        <button onclick="closeShareModal()" class="btn-secondary" style="background:#e2e8f0; color:#333;">Cancel</button>
-        <button onclick="submitShareForm()" class="btn-primary" style="background:#10b981; color:white;">Grant Access</button>
+        <button onclick="closeShareModal()" style="padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; background:var(--border); color:var(--text-primary);">Cancel</button>
+        <button onclick="submitShareForm()">Grant Access</button>
     </div>
 </dialog>
 
+    <script>
+        // Theme management
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeLabel = document.getElementById('theme-label');
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            const isDark = theme === 'dark';
+            themeLabel.textContent = isDark ? 'Light' : 'Dark';
+            themeIcon.innerHTML = isDark
+                ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+                : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+        }
+
+        // Auto-detect system preference, fallback to stored preference
+        const stored = localStorage.getItem('theme');
+        if (stored) {
+            setTheme(stored);
+        } else {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            setTheme(prefersDark ? 'dark' : 'light');
+        }
+
+        themeBtn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        });
+
+        // Listen for system preference changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                setTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+    </script>
+
+    <script>
+        // Sidebar resize and collapse functionality
+        const sidebar = document.getElementById('sidebar');
+        const resizer = document.getElementById('sidebar-resizer');
+        const toggleButton = document.getElementById('sidebar-toggle');
+        
+        let isResizing = false;
+        let lastWidth = '260px';
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            sidebar.classList.remove('transition');
+            document.body.style.cursor = 'ew-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            let newWidth = e.clientX;
+            
+            if (newWidth < 50) newWidth = 0;
+            if (newWidth > 400) newWidth = 400;
+            
+            if (newWidth === 0) {
+                sidebar.classList.add('collapsed');
+                sidebar.style.width = '0px';
+                toggleButton.innerHTML = '&gt;';
+            } else {
+                sidebar.classList.remove('collapsed');
+                sidebar.style.width = `${newWidth}px`;
+                lastWidth = `${newWidth}px`;
+                toggleButton.innerHTML = '&lt;';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
+            }
+        });
+
+        toggleButton.addEventListener('click', () => {
+            sidebar.classList.add('transition');
+            if (sidebar.classList.contains('collapsed')) {
+                sidebar.classList.remove('collapsed');
+                sidebar.style.width = lastWidth;
+                toggleButton.innerHTML = '&lt;';
+            } else {
+                lastWidth = sidebar.style.width || '260px';
+                sidebar.classList.add('collapsed');
+                sidebar.style.width = '0px';
+                toggleButton.innerHTML = '&gt;';
+            }
+        });
+    </script>
 </body>
 </html>

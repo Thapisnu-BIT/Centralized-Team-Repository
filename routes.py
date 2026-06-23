@@ -53,29 +53,26 @@ def handle_post_login(handler, params):
         handler.redirect('/?error=Invalid+username+or+password')
 
 def handle_share_route(handler, query, username, active_project):
-    """Processes access assignments targeting other authenticated accounts."""
     file_id = query.get('id', [None])[0]
     target_user = query.get('with', [''])[0].strip()
+    privilege = query.get('privilege', ['Viewer'])[0].strip()
     
     if file_id and target_user:
-        success, message = database.share_file_with_user(file_id, target_user, username)
+        success, message = database.share_file_with_user(file_id, target_user, username, privilege)
         if success:
             handler.redirect(f'/?project={urllib.parse.quote(active_project)}&msg={urllib.parse.quote(message)}')
             return
         else:
             handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error={urllib.parse.quote(message)}')
             return
-            
     handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Invalid+Share+Parameters')
 
 def handle_download_route(handler, query, active_project, username):
     file_id = query.get('id', [None])[0]
     if file_id:
-        # Enforce multi-user read security clearance
         if not database.check_file_read_access(file_id, username):
-            handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Access+Denied+to+Target+File')
+            handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Access+Denied')
             return
-            
         file_data = database.get_file_by_id(file_id)
         if file_data:
             filename, unique_name, version = file_data
@@ -99,18 +96,12 @@ def handle_download_route(handler, query, active_project, username):
 def handle_delete_route(handler, query, active_project, username):
     file_id = query.get('id', [None])[0]
     if file_id:
+        if not database.check_file_write_access(file_id, username):
+            handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Access+Denied:+Insufficient+Permissions')
+            return
         file_data = database.get_file_metadata(file_id)
         if file_data:
             filename, unique_name, project = file_data
-            
-            # Restrict destructive operations solely to owners
-            if file_data[2] != username:
-                # Fallback safeguard double-check tracking query
-                with sqlite3_connect_owner_test(file_id, username) as is_owner:
-                    if not is_owner:
-                        handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Only+file+owners+can+delete+assets')
-                        return
-
             full_path = os.path.join(config.UPLOAD_DIR, unique_name)
             if os.path.exists(full_path):
                 os.remove(full_path)
@@ -119,20 +110,13 @@ def handle_delete_route(handler, query, active_project, username):
             return
     handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Could+not+delete+file')
 
-def sqlite3_connect_owner_test(file_id, username):
-    import sqlite3
-    with sqlite3.connect(config.DB_FILE) as conn:
-        res = conn.execute("SELECT 1 FROM files WHERE id = ? AND uploaded_by = ?", (file_id, username)).fetchone()
-        return res is not None
-
 def handle_rename_route(handler, query, active_project, username):
     file_id = query.get('id', [None])[0]
     new_name = query.get('new_name', [''])[0].strip()
     if file_id and new_name:
-        if not sqlite3_connect_owner_test(file_id, username):
-            handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Only+file+owners+can+rename+assets')
+        if not database.check_file_write_access(file_id, username):
+            handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Access+Denied:+Insufficient+Permissions')
             return
-            
         file_data = database.get_file_metadata(file_id)
         if file_data:
             old_name, _, project = file_data
@@ -159,16 +143,20 @@ def handle_rename_route(handler, query, active_project, username):
 
 def handle_dashboard_route(handler, query, username, active_project):
     distinct_projects, latest_files, all_versions = database.fetch_dashboard_data(active_project, username)
-    
-    # Fetch other system users for the sharing dropdown selection
     other_users = database.fetch_other_users(username)
     user_options = "".join([f'<option value="{u}">{u}</option>' for u in other_users])
+
+    file_shared_with_data = {}
+    for f in latest_files:
+        file_id = f[0]
+        shared_users = database.get_shared_users_for_file(file_id)
+        file_shared_with_data[file_id] = shared_users
     
     project_pool = {row[0] for row in distinct_projects}
     project_pool.add('Default')
     if active_project not in project_pool:
         project_pool.add(active_project)
-        
+    
     msg = query.get('msg', [None])[0]
     err = query.get('error', [None])[0]
     
@@ -185,69 +173,78 @@ def handle_dashboard_route(handler, query, username, active_project):
 
     table_rows = ""
     if not latest_files:
-        table_rows = '<tr><td colspan="6" style="text-align: center; color: #777;">No files uploaded or shared in this project space yet.</td></tr>'
+        table_rows = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No files uploaded or shared in this project space yet.</td></tr>'
     else:
         for f in latest_files:
-            file_id, filename, filepath, filesize, uploaded_by, version, upload_time = f
+            file_id, filename, filepath, filesize, uploaded_by, version, upload_time, user_role = f
             history_rows = ""
             history_list = [v for v in all_versions if v[1] == filename and v[4] == uploaded_by and v[5] < version]
             
+            shared_users_str = ", ".join([f'{user} ({priv})' for user, priv in file_shared_with_data.get(file_id, [])])
+            if not shared_users_str:
+                shared_users_str = "None"
+
             if history_list:
-                history_rows += f'<tr class="history-row-{file_id}" style="display:none; background:#fdfdfd;"><td colspan="6" style="padding-left: 30px; font-size:13px; color:#555;"><strong>Version History:</strong><table style="width:100%; margin-top:5px; border:1px solid #eee;">'
+                history_rows += f'<tr class="history-row-{file_id}" style="display:none;"><td colspan="7" style="padding-left: 30px; font-size:13px;"><strong>Version History:</strong><table class="history-inner">'
                 for hv in history_list:
-                    history_rows += f"""
-                    <tr style="background:#f9f9f9;">
-                        <td>v{hv[5]}</td>
-                        <td>{helpers.format_bytes(hv[3])}</td>
-                        <td>Uploaded by {hv[4]}</td>
-                        <td>{hv[6]}</td>
-                        <td style="text-align:right;">
-                            <a href="/download?id={hv[0]}&project={urllib.parse.quote(active_project)}" style="color: #28a745; text-decoration:none; margin-right:15px;">Download v{hv[5]}</a>
-                        </td>
-                    </tr>"""
+                    history_rows += f'<tr><td>v{hv[5]}</td><td>{helpers.format_bytes(hv[3])}</td><td>Uploaded by {hv[4]}</td><td>{hv[6]}</td><td style="text-align:right;"><a href="/download?id={hv[0]}&project={urllib.parse.quote(active_project)}" class="btn-action btn-download" title="Download v{hv[5]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a></td></tr>'
                 history_rows += "</table></td></tr>"
 
             toggle_btn = ""
             if history_list:
-                toggle_btn = f"""<button onclick="var el=document.getElementsByClassName('history-row-{file_id}'); for(var i=0;i<el.length;i++) {{ el[i].style.display = el[i].style.display==='none'?'table-row':'none'; }}" style="margin-left:8px; background:none; border:none; color:#007bff; cursor:pointer; font-size:12px; text-decoration:underline;">🕒 View History ({len(history_list)})</button>"""
+                toggle_btn = f"<button onclick=\"var el=document.getElementsByClassName('history-row-{file_id}'); for(var i=0;i<el.length;i++) {{ el[i].style.display = el[i].style.display==='none'?'table-row':'none'; }}\" class=\"btn-view\">View History ({len(history_list)})</button>"
 
-            # Updated to pass the context parameters into our custom JS dialog opener instead of standard prompts
             share_js = f"openShareModal('{file_id}', '{filename}')"
             rename_js = f"var n=prompt('Enter new filename:', '{filename}'); if(n && n.trim()!=''){{window.location.href='/rename?id={file_id}&project={urllib.parse.quote(active_project)}&new_name='+encodeURIComponent(n.trim());}}"
 
             is_owner = (uploaded_by == username)
+            allowed_to_modify = is_owner or (user_role == 'Editor')
+            
             owner_actions = ""
             if is_owner:
-                owner_actions = f"""
-                    <a href="javascript:void(0);" onclick="{share_js}" style="background: #10b981; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-right: 5px; font-weight:bold;">Share</a>
-                    <a href="javascript:void(0);" onclick="{rename_js}" style="background: #ffc107; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: #212529; font-size: 14px; margin-right: 5px; font-weight:bold;">Rename</a>
-                    <a href="/delete?id={file_id}&project={urllib.parse.quote(active_project)}" onclick="return confirm('Are you sure you want to delete this file and its history?');" style="background: #dc3545; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-right: 5px;">Delete</a>
+                owner_actions += f'''<a href="javascript:void(0);" onclick="{share_js}" class="btn-action btn-share" title="Share">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                </a>'''
+            
+            if allowed_to_modify:
+                owner_actions += f"""
+                    <a href="javascript:void(0);" onclick="{rename_js}" class="btn-action btn-rename" title="Rename">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                    </a>
+                    <a href="/delete?id={file_id}&project={urllib.parse.quote(active_project)}" onclick="return confirm('Are you sure you want to delete this file and its history?');" class="btn-action btn-delete" title="Delete">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </a>
                 """
             
-            owner_badge = f'<span style="color:#2563eb; font-size:11px;">(You)</span>' if is_owner else f'<span style="color:#64748b; font-size:11px;">(Shared by {uploaded_by})</span>'
+            owner_badge = f'<span class="badge-owner">(You)</span>' if is_owner else f'<span class="badge-shared">(Shared - {user_role})</span>'
 
             table_rows += f"""
-            <tr style="background:#fff; font-weight: 500;">
+            <tr class="file-row">
                 <td><strong>{filename}</strong> {owner_badge} {toggle_btn}</td>
-                <td><span style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:12px;">v{version}</span></td>
+                <td><span class="version-badge">v{version}</span></td>
                 <td>{helpers.format_bytes(filesize)}</td>
                 <td>{uploaded_by}</td>
                 <td>{upload_time}</td>
+                <td>{shared_users_str}</td>
                 <td style="text-align:right;">
-                    {owner_actions}
-                    <a href="/download?id={file_id}&project={urllib.parse.quote(active_project)}" style="background: #28a745; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px;">Download Latest</a>
+                    <div class="actions-grid">
+                        {owner_actions}
+                        <a href="/download?id={file_id}&project={urllib.parse.quote(active_project)}" class="btn-action btn-download" title="Download">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </a>
+                    </div>
                 </td>
             </tr>
             {history_rows}"""
 
-    # Added 'user_options' template rendering parameters context entry logic
     html = helpers.render_template('dashboard.html', {
         'username': username,
         'active_project': active_project,
         'project_list_items': project_list_items,
         'alert_div': alert_div,
         'table_rows': table_rows,
-        'user_options': user_options
+        'user_options': user_options,
+        'file_shared_with_data': file_shared_with_data
     })
 
     handler.send_response(200)
