@@ -96,6 +96,23 @@ def share_file_with_user(file_id, target_username, current_user, privilege='View
         except Exception as e:
             return False, f"Database error: {str(e)}"
 
+def revoke_file_share(file_id, target_username, current_user):
+    """Removes access permissions for a target user on a file."""
+    target_username = target_username.strip()
+    with sqlite3.connect(DB_FILE) as conn:
+        file_ownership = conn.execute("SELECT filename FROM files WHERE id = ? AND uploaded_by = ?", (file_id, current_user)).fetchone()
+        if not file_ownership:
+            return False, "Access Denied: You do not own this file reference."
+        filename = file_ownership[0]
+        all_file_ids = conn.execute("SELECT id FROM files WHERE filename = ? AND uploaded_by = ?", (filename, current_user)).fetchall()
+        try:
+            for (f_id,) in all_file_ids:
+                conn.execute("DELETE FROM file_shares WHERE file_id = ? AND shared_with_user = ?", (f_id, target_username))
+            conn.commit()
+            return True, f"Revoked access for {target_username} on '{filename}'."
+        except Exception as e:
+            return False, f"Database error: {str(e)}"
+
 def check_file_write_access(file_id, username):
     """Validates whether a user can alter or manipulate a specific file record."""
     with sqlite3.connect(DB_FILE) as conn:

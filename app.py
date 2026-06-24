@@ -62,6 +62,9 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
             # Added target route mapping for multi-user resource assignment
             active_project = query.get('project', ['Default'])[0]
             routes.handle_share_route(self, query, username, active_project)
+        elif path == '/revoke':
+            active_project = query.get('project', ['Default'])[0]
+            routes.handle_revoke_route(self, query, username, active_project)
         elif path == '/logout':
             routes.handle_logout_route(self)
         else:
@@ -107,7 +110,7 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
             self.send_error(404, "Endpoint Not Found")
 
 if __name__ == '__main__':
-    server_address = ('10.150.252.15', 8000)
+    server_address = ('', 8000)
     httpd = HTTPServer(server_address, RepositoryRequestHandler)
     print("Serving secure distributed workspace on http://127.0.0.1:8000 ...")
     try:

@@ -13,9 +13,9 @@ def handle_login_route(handler, query):
     msg = query.get('msg', [None])[0]
     alert_div = ''
     if error_msg:
-        alert_div = f'<div style="color: #dc3545; font-size: 14px; margin-bottom: 15px; text-align:center;">{error_msg}</div>'
+        alert_div = f'<div style="color: var(--error); font-size: 14px; margin-bottom: 15px; text-align:center;">{error_msg}</div>'
     elif msg:
-        alert_div = f'<div style="color: #155724; font-size: 14px; margin-bottom: 15px; text-align:center;">{msg}</div>'
+        alert_div = f'<div style="color: var(--success); font-size: 14px; margin-bottom: 15px; text-align:center;">{msg}</div>'
     html = helpers.render_template('login.html', {'error_div': alert_div})
     handler.send_response(200)
     handler.send_header('Content-type', 'text/html; charset=utf-8')
@@ -66,6 +66,18 @@ def handle_share_route(handler, query, username, active_project):
             handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error={urllib.parse.quote(message)}')
             return
     handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Invalid+Share+Parameters')
+
+def handle_revoke_route(handler, query, username, active_project):
+    file_id = query.get('id', [None])[0]
+    target_user = query.get('with', [''])[0].strip()
+    if file_id and target_user:
+        success, message = database.revoke_file_share(file_id, target_user, username)
+        if success:
+            handler.redirect(f'/?project={urllib.parse.quote(active_project)}&msg={urllib.parse.quote(message)}')
+        else:
+            handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error={urllib.parse.quote(message)}')
+    else:
+        handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Invalid+Revoke+Parameters')
 
 def handle_download_route(handler, query, active_project, username):
     file_id = query.get('id', [None])[0]
@@ -162,9 +174,8 @@ def handle_dashboard_route(handler, query, username, active_project):
     
     alert_div = ''
     if msg or err:
-        color = "#f8d7da" if err else "#d4edda"
-        text_color = "#721c24" if err else "#155724"
-        alert_div = f'<div style="background: {color}; color: {text_color}; padding: 10px; margin-bottom: 15px; border-radius: 4px;">{err or msg}</div>'
+        cls = "alert-error" if err else "alert-success"
+        alert_div = f'<div class="{cls}">{err or msg}</div>'
 
     project_list_items = ""
     for p_name in sorted(list(project_pool)):
@@ -180,9 +191,17 @@ def handle_dashboard_route(handler, query, username, active_project):
             history_rows = ""
             history_list = [v for v in all_versions if v[1] == filename and v[4] == uploaded_by and v[5] < version]
             
-            shared_users_str = ", ".join([f'{user} ({priv})' for user, priv in file_shared_with_data.get(file_id, [])])
-            if not shared_users_str:
-                shared_users_str = "None"
+            is_owner = (uploaded_by == username)
+            allowed_to_modify = is_owner or (user_role == 'Editor')
+            
+            shared_users_parts = []
+            for user, priv in file_shared_with_data.get(file_id, []):
+                label = f'<span>{user} <em>({priv})</em>'
+                if is_owner:
+                    label += f' <a href="/revoke?id={file_id}&project={urllib.parse.quote(active_project)}&with={urllib.parse.quote(user)}" class="btn-revoke" title="Revoke access">&#x2716;</a>'
+                label += '</span>'
+                shared_users_parts.append(label)
+            shared_users_str = f'<div class="shared-grid">{" ".join(shared_users_parts)}</div>' if shared_users_parts else '<span class="text-muted">None</span>'
 
             if history_list:
                 history_rows += f'<tr class="history-row-{file_id}" style="display:none;"><td colspan="7" style="padding-left: 30px; font-size:13px;"><strong>Version History:</strong><table class="history-inner">'
@@ -194,11 +213,8 @@ def handle_dashboard_route(handler, query, username, active_project):
             if history_list:
                 toggle_btn = f"<button onclick=\"var el=document.getElementsByClassName('history-row-{file_id}'); for(var i=0;i<el.length;i++) {{ el[i].style.display = el[i].style.display==='none'?'table-row':'none'; }}\" class=\"btn-view\">View History ({len(history_list)})</button>"
 
-            share_js = f"openShareModal('{file_id}', '{filename}')"
-            rename_js = f"var n=prompt('Enter new filename:', '{filename}'); if(n && n.trim()!=''){{window.location.href='/rename?id={file_id}&project={urllib.parse.quote(active_project)}&new_name='+encodeURIComponent(n.trim());}}"
-
-            is_owner = (uploaded_by == username)
-            allowed_to_modify = is_owner or (user_role == 'Editor')
+            share_js = f"openShareModal('{file_id}', '{helpers.js_escape(filename)}')"
+            rename_js = f"var n=prompt('Enter new filename:', '{helpers.js_escape(filename)}'); if(n && n.trim()!=''){{window.location.href='/rename?id={file_id}&project={urllib.parse.quote(active_project)}&new_name='+encodeURIComponent(n.trim());}}"
             
             owner_actions = ""
             if is_owner:

@@ -14,6 +14,10 @@ def sanitize_filename(filename):
     """Removes path traversal strings and formatting issues from client file inputs."""
     return os.path.basename(filename).replace("/", "").replace("\\", "").replace('"', '')
 
+def js_escape(s):
+    """Escapes a string for safe embedding in single-quoted JavaScript strings."""
+    return s.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n').replace('\r', '\\r')
+
 def render_template(template_name, context):
     """Reads an HTML template and cleanly injects Python dictionary objects using $ placeholders."""
     template_path = os.path.join(TEMPLATE_DIR, template_name)

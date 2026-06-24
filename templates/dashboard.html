@@ -28,57 +28,83 @@
             --accent: #7c3aed;
             --accent-hover: #6d28d9;
             --accent-light: #a78bfa;
+            --btn-primary: #5b21b6;
+            --btn-primary-hover: #4c1d95;
+            --error: #dc3545;
+            --success: #155724;
             --version-bg: #e2e8f0;
             --row-hover: #fafaff;
         }
         [data-theme="dark"] {
-            --bg-body: #0c0820;
-            --bg-sidebar: #0a0718;
-            --bg-sidebar-hover: #1a1040;
-            --bg-card: #130c2e;
-            --bg-upload: #1a1040;
-            --bg-input: #1a1035;
-            --bg-table-header: #1a1040;
-            --bg-dialog: #1a1040;
-            --text-primary: #e8e0f0;
-            --text-secondary: #a78bfa;
-            --text-muted: #7c6a9a;
-            --text-sidebar: #f0e8ff;
-            --text-sidebar-item: #b8a8d8;
-            --text-sidebar-muted: #6b5a8a;
-            --border: #2d1b69;
-            --border-light: #2d1b69;
-            --border-input: #3d2b79;
-            --shadow: 0 2px 5px rgba(0,0,0,0.4);
-            --shadow-dialog: 0 4px 15px rgba(0,0,0,0.6);
-            --overlay: rgba(0,0,0,0.7);
+            --bg-body: #06030f;
+            --bg-sidebar: #05030d;
+            --bg-sidebar-hover: #100a22;
+            --bg-card: #0a0718;
+            --bg-upload: #0a0718;
+            --bg-input: #0a0718;
+            --bg-table-header: #0a0718;
+            --bg-dialog: #0a0718;
+            --text-primary: #d0c8e0;
+            --text-secondary: #9080b0;
+            --text-muted: #5c4e78;
+            --text-sidebar: #e0d8f0;
+            --text-sidebar-item: #9988b8;
+            --text-sidebar-muted: #5a4a78;
+            --border: #1a0e40;
+            --border-light: #1a0e40;
+            --border-input: #251555;
+            --shadow: 0 2px 5px rgba(0,0,0,0.5);
+            --shadow-dialog: 0 4px 15px rgba(0,0,0,0.7);
+            --overlay: rgba(0,0,0,0.8);
             --accent: #a78bfa;
             --accent-hover: #8b70e0;
             --accent-light: #7c3aed;
-            --version-bg: #2d1b69;
-            --row-hover: #1a1040;
+            --btn-primary: #5b21b6;
+            --btn-primary-hover: #4c1d95;
+            --error: #ef4444;
+            --success: #10b981;
+            --version-bg: #1a0e40;
+            --row-hover: #0f0a22;
         }
         * { transition: background-color 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.25s; }
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: var(--bg-body); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; }
         #wrapper { display: flex; width: 100%; height: 100%; }
-        .sidebar { width: 260px; min-width: 0; background: var(--bg-sidebar); color: var(--text-sidebar); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; position: relative; }
+        .sidebar { width: 260px; min-width: 0; background: var(--bg-sidebar); color: var(--text-sidebar); display: flex; flex-direction: column; box-sizing: border-box; position: relative; }
         .sidebar.transition { transition: width 0.25s ease; }
-        .sidebar.collapsed { width: 0 !important; padding: 0; }
-        .sidebar-resizer { width: 6px; cursor: ew-resize; position: absolute; right: 0; top: 0; bottom: 0; background: rgba(255, 255, 255, 0.1); }
-        .sidebar-toggle { position: absolute; top: 10px; right: -30px; background: var(--bg-sidebar); color: white; border: none; padding: 8px 10px; cursor: pointer; border-radius: 0 4px 4px 0; z-index: 100; }
-        .sidebar.collapsed .sidebar-toggle { right: -30px; border-radius: 0 4px 4px 0; }
-        .sidebar > *:not(.sidebar-toggle):not(.sidebar-resizer) { opacity: 1; transition: opacity 0.3s ease-in-out; }
+        .sidebar.collapsed { width: 0 !important; padding: 0 !important; }
+        .sidebar-resizer { width: 5px; cursor: ew-resize; position: absolute; right: 0; top: 0; bottom: 0; z-index: 10; }
+        .sidebar-resizer:hover { background: var(--accent); opacity: 0.3; }
+        .sidebar-toggle { position: absolute; top: 12px; right: -30px; background: var(--bg-sidebar); color: var(--text-sidebar-item); border: none; padding: 6px 8px; cursor: pointer; border-radius: 0 6px 6px 0; font-size: 16px; line-height: 1; z-index: 100; }
+        .sidebar-toggle:hover { background: var(--bg-sidebar-hover); color: #fff; }
+        .sidebar.collapsed .sidebar-toggle { right: -30px; }
+        .sidebar > *:not(.sidebar-toggle):not(.sidebar-resizer) { opacity: 1; transition: opacity 0.3s ease; min-width: 0; }
         .sidebar.collapsed > *:not(.sidebar-toggle):not(.sidebar-resizer) { opacity: 0; pointer-events: none; }
-        
-        .sidebar h2 { margin: 0 0 10px 0; color: #fff; font-size: 20px; }
-        .sidebar h3 { margin-top: 20px; color: var(--accent-light); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        .project-list { list-style: none; padding: 0; margin: 15px 0; flex-grow: 1; overflow-y: auto; }
-        .project-item a { display: block; padding: 10px; color: var(--text-sidebar-item); text-decoration: none; border-radius: 6px; margin-bottom: 5px; font-weight: 500; }
-        .project-item.active a { background: var(--accent); color: white; }
-        .project-item a:hover:not(.active a) { background: var(--bg-sidebar-hover); color: white; }
-        .new-project-form input { width: 100%; padding: 8px; border: 1px solid #334155; background: #0f172a; color: white; border-radius: 4px; box-sizing: border-box; margin-bottom: 8px; }
-        .new-project-form button { width: 100%; padding: 8px; background: var(--accent); border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .new-project-form button:hover { background: var(--accent-hover); }
+
+        .sidebar-header { display: flex; align-items: center; padding: 14px 16px 0; }
+        .sidebar-logo { font-size: 15px; font-weight: 700; color: #fff; }
+
+        .sidebar-search { padding: 10px 16px 0; }
+        .sidebar-search input { width: 100%; padding: 7px 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06); color: var(--text-sidebar); border-radius: 8px; outline: none; font-size: 13px; box-sizing: border-box; }
+        .sidebar-search input:focus { border-color: var(--accent); background: rgba(255,255,255,0.1); }
+        .sidebar-search input::placeholder { color: var(--text-sidebar-muted); }
+
+        .sidebar-projects { flex: 1; overflow-y: auto; padding: 6px 12px 0; margin-top: 2px; }
+        .project-list { list-style: none; padding: 0; margin: 0; }
+        .project-item { margin-bottom: 1px; }
+        .project-item a { display: block; padding: 8px 12px; color: var(--text-sidebar-item); text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .project-item.active a { background: var(--btn-primary); color: #fff; }
+        .project-item a:not(.project-item.active a):hover { background: var(--bg-sidebar-hover); color: #fff; }
+
+        .sidebar-footer { border-top: 1px solid rgba(255,255,255,0.06); padding: 10px 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+        .create-form { display: flex; gap: 6px; }
+        .create-form input { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06); color: var(--text-sidebar); border-radius: 8px; outline: none; font-size: 13px; }
+        .create-form input:focus { border-color: var(--accent); background: rgba(255,255,255,0.1); }
+        .create-form button { padding: 7px 14px; background: var(--btn-primary); border: none; color: #fff; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; white-space: nowrap; }
+        .create-form button:hover { background: var(--btn-primary-hover); }
+
+        .theme-btn { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); color: var(--text-sidebar-item); padding: 7px; border-radius: 8px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .theme-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); }
+        .theme-btn svg { width: 14px; height: 14px; }
         
         .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; box-sizing: border-box; }
         .container { max-width: 1100px; margin: 0 auto; background: var(--bg-card); padding: 30px; border-radius: 8px; box-shadow: var(--shadow); }
@@ -96,14 +122,22 @@
         th:nth-child(6) { width: 14%; }
         th:nth-child(7) { width: 24%; }
         .actions-grid { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+        .shared-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; font-size: 12px; }
+        .shared-grid span { display: flex; align-items: center; gap: 2px; background: var(--bg-upload); padding: 2px 4px; border-radius: 3px; }
+        .shared-grid em { font-style: normal; color: var(--text-muted); font-size: 11px; }
+        .text-muted { color: var(--text-muted); }
         .btn-action { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; text-decoration: none; cursor: pointer; border: none; transition: all 0.15s; }
         .btn-action:hover { filter: brightness(1.15); transform: scale(1.1); }
-        .btn-action svg { width: 16px; height: 16px; fill: currentColor; }
+        .btn-action svg { width: 16px; height: 16px; }
         .btn-share { background: #7c3aed; color: white; }
         .btn-rename { background: #f59e0b; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-download { background: #10b981; color: white; }
         .btn-view { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; text-decoration: underline; padding: 0; white-space: nowrap; }
+        .btn-revoke { color: #ef4444; text-decoration: none; font-size: 12px; margin-left: 2px; font-weight: bold; }
+        .btn-revoke:hover { color: #dc2626; }
+        .alert-success { background: var(--bg-upload); color: var(--text-primary); padding: 10px; margin-bottom: 15px; border-radius: 4px; border-left: 4px solid #10b981; }
+        .alert-error { background: var(--bg-upload); color: var(--text-primary); padding: 10px; margin-bottom: 15px; border-radius: 4px; border-left: 4px solid #ef4444; }
         .version-badge { background: var(--version-bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: var(--text-primary); }
         .badge-owner { color: var(--accent); font-size: 11px; }
         .badge-shared { color: var(--text-muted); font-size: 11px; }
@@ -115,6 +149,11 @@
         
         .upload-form-inline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 15px; }
         .upload-form-inline input[type="text"] { padding: 8px 12px; border: 1px solid var(--border-input); border-radius: 4px; min-width: 250px; font-size: 14px; background: var(--bg-input); color: var(--text-primary); }
+        .file-label { position: relative; display: inline-block; cursor: pointer; }
+        .file-label input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .file-label span { display: inline-block; padding: 9px 16px; background: var(--btn-primary); color: #fff; border-radius: 4px; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .file-label span:hover { background: var(--btn-primary-hover); }
+        .file-label span::before { content: "Browse"; }
 
         dialog { border: none; border-radius: 8px; box-shadow: var(--shadow-dialog); padding: 25px; width: 400px; max-width: 90%; background: var(--bg-dialog); color: var(--text-primary); }
         dialog::backdrop { background: var(--overlay); }
@@ -125,10 +164,6 @@
         .dialog-actions button:last-child { background: var(--accent); color: white; }
         .dialog-actions button:last-child:hover { background: var(--accent-hover); }
 
-        .theme-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-        .theme-toggle button { background: none; border: 1px solid rgba(255,255,255,0.2); color: var(--text-sidebar-item); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px; }
-        .theme-toggle button:hover { background: rgba(255,255,255,0.1); }
-        .theme-toggle svg { width: 14px; height: 14px; fill: currentColor; }
     </style>
     
     <script>
@@ -190,37 +225,38 @@
 
 <div id="wrapper">
     <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-logo">File Repo</span>
+        </div>
         <button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
         <div class="sidebar-resizer" id="sidebar-resizer"></div>
-        <div>
-            <h2>File Repo</h2>
-            <h3>📁 Projects Space</h3>
+        <div class="sidebar-search">
+            <input type="text" placeholder="Find a project..." oninput="filterProjects(this.value)">
+        </div>
+        <div class="sidebar-projects">
             <ul class="project-list">
                 $project_list_items
             </ul>
-        <div class="theme-toggle">
-            <button id="theme-btn">
+        </div>
+        <div class="sidebar-footer">
+            <form class="create-form" method="POST" action="/create-project">
+                <input type="text" name="project_name" placeholder="New project..." required pattern="[A-Za-z0-9_\\-]+">
+                <button type="submit">+</button>
+            </form>
+            <button class="theme-btn" id="theme-btn">
                 <svg viewBox="0 0 24 24" id="theme-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 <span id="theme-label">Dark</span>
             </button>
-        </div>
-    </div>
-    <div class="new-project-form">
-            <h3>➕ Create Project</h3>
-            <form method="POST" action="/create-project">
-                <input type="text" name="project_name" placeholder="Project Name..." required pattern="[A-Za-z0-9_\\-]+">
-                <button type="submit">Create</button>
-            </form>
         </div>
     </div>
 
     <div class="main-content">
     <div class="container">
         <div class="header">
-            <h2>Active Space: <span style="color:#7c3aed;">$active_project</span></h2>
+            <h2>Active Space: <span style="color:var(--accent);">$active_project</span></h2>
             <div>
                 <span>Logged in as: <strong>$username</strong></span> | 
-                <a href="/logout" style="background: #7c3aed; padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-left: 10px;">Logout</a>
+                <a href="/logout" style="background: var(--btn-primary); padding: 6px 12px; text-decoration: none; border-radius: 4px; color: white; font-size: 14px; margin-left: 10px;">Logout</a>
             </div>
         </div>
         
@@ -230,9 +266,12 @@
             <h3>Upload to target project space</h3>
             <form method="POST" action="/upload" enctype="multipart/form-data" onsubmit="prepareUpload(event)" class="upload-form-inline">
                 <input type="hidden" name="active_project" value="$active_project">
-                <input type="file" name="repo_file" required>
+                <label class="file-label">
+                    <input type="file" name="repo_file" required>
+                    <span></span>
+                </label>
                 <input type="text" name="custom_filename" placeholder="Optional: Rename file on save...">
-                <button type="submit" style="background: #7c3aed; border: none; color: white; cursor: pointer; padding: 9px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;">Upload File</button>
+                <button type="submit" style="background: var(--btn-primary); border: none; color: white; cursor: pointer; padding: 9px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;">Upload File</button>
             </form>
         </div>
         
@@ -349,6 +388,16 @@
         const sidebar = document.getElementById('sidebar');
         const resizer = document.getElementById('sidebar-resizer');
         const toggleButton = document.getElementById('sidebar-toggle');
+
+        function filterProjects(query) {
+            const items = document.querySelectorAll('.project-item');
+            const lower = query.toLowerCase();
+            items.forEach(item => {
+                const link = item.querySelector('a');
+                const match = !query || link.textContent.toLowerCase().includes(lower);
+                item.style.display = match ? '' : 'none';
+            });
+        }
         
         let isResizing = false;
         let lastWidth = '260px';
