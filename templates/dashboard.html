@@ -138,6 +138,8 @@
         .btn-revoke:hover { color: #dc2626; }
         .alert-success { background: var(--bg-upload); color: var(--text-primary); padding: 10px; margin-bottom: 15px; border-radius: 4px; border-left: 4px solid #10b981; }
         .alert-error { background: var(--bg-upload); color: var(--text-primary); padding: 10px; margin-bottom: 15px; border-radius: 4px; border-left: 4px solid #ef4444; }
+        .stats-banner { display: flex; gap: 12px; padding: 10px 16px; background: var(--bg-upload); border-radius: 8px; margin-bottom: 18px; font-size: 13px; color: var(--text-secondary); flex-wrap: wrap; }
+        .stats-banner span { white-space: nowrap; }
         .version-badge { background: var(--version-bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: var(--text-primary); }
         .badge-owner { color: var(--accent); font-size: 11px; }
         .badge-shared { color: var(--text-muted); font-size: 11px; }
@@ -274,6 +276,8 @@
                 <button type="submit" style="background: var(--btn-primary); border: none; color: white; cursor: pointer; padding: 9px 16px; border-radius: 4px; font-weight: bold; font-size: 14px;">Upload File</button>
             </form>
         </div>
+        
+        $stats_banner
         
         <h3>Tracked Items</h3>
         <table>

@@ -169,6 +169,25 @@ def handle_dashboard_route(handler, query, username, active_project):
     if active_project not in project_pool:
         project_pool.add(active_project)
     
+    total_files = len(latest_files)
+    total_size = sum(f[3] for f in latest_files if f[3] is not None)
+    total_size_str = helpers.format_bytes(total_size) if total_size else "0 B"
+    latest_time = max((f[6] for f in all_versions if f[6]), default=None)
+    last_activity = helpers.time_ago(latest_time) if latest_time else "Never"
+    shared_user_set = set()
+    for u_list in file_shared_with_data.values():
+        for user, _ in u_list:
+            shared_user_set.add(user)
+    shared_count = len(shared_user_set)
+
+    stats_parts = []
+    stats_parts.append(f"📦 {total_files} file{'s' if total_files != 1 else ''}")
+    stats_parts.append(f"{total_size_str}")
+    stats_parts.append(f"Last: {last_activity}")
+    if shared_count:
+        stats_parts.append(f"Shared: {shared_count} user{'s' if shared_count != 1 else ''}")
+    stats_banner = '<div class="stats-banner">' + " · ".join(stats_parts) + '</div>'
+    
     msg = query.get('msg', [None])[0]
     err = query.get('error', [None])[0]
     
@@ -260,6 +279,7 @@ def handle_dashboard_route(handler, query, username, active_project):
         'alert_div': alert_div,
         'table_rows': table_rows,
         'user_options': user_options,
+        'stats_banner': stats_banner,
         'file_shared_with_data': file_shared_with_data
     })
 
