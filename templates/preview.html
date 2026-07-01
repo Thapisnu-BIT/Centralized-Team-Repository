@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$filename — Preview</title>
+    <style>
+        :root { --bg-body: #f5f3ff; --bg-card: #ffffff; --text-primary: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --accent: #7c3aed; }
+        [data-theme="dark"] { --bg-body: #06030f; --bg-card: #0a0718; --text-primary: #d0c8e0; --text-secondary: #9080b0; --border: #1a0e40; --accent: #a78bfa; }
+        * { transition: background-color 0.25s, color 0.25s; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 24px; background: var(--bg-body); color: var(--text-primary); }
+        .preview-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .preview-header h2 { margin: 0; font-size: 18px; }
+        .preview-meta { color: var(--text-secondary); font-size: 13px; }
+        .back-btn { text-decoration: none; color: var(--accent); font-size: 14px; font-weight: 600; }
+        .back-btn:hover { text-decoration: underline; }
+        pre { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; font-size: 13px; line-height: 1.5; margin: 0; white-space: pre-wrap; word-wrap: break-word; }
+        .unsupported { text-align: center; padding: 60px 20px; color: var(--text-secondary); font-size: 15px; }
+        .unsupported svg { width: 48px; height: 48px; stroke: currentColor; margin-bottom: 16px; }
+        .file-too-large { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+    </style>
+    <script>
+        const stored = localStorage.getItem('theme');
+        if (stored) document.documentElement.setAttribute('data-theme', stored);
+        else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.setAttribute('data-theme', 'dark');
+    </script>
+</head>
+<body>
+    <div class="preview-header">
+        <a href="/?project=$project" class="back-btn">&larr; Back</a>
+        <h2>$filename</h2>
+        <span class="preview-meta">$file_info</span>
+    </div>
+    $content
+</body>
+</html>

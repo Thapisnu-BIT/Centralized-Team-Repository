@@ -37,6 +37,13 @@ def time_ago(dt_str):
     except:
         return dt_str
 
+def is_text_file(filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in {'.txt','.py','.md','.html','.json','.yaml','.yml','.csv','.log','.js','.css','.xml','.cfg','.ini','.sh','.bat','.env','.sql','.toml','.rb','.php','.pl','.r','.conf','.properties','.cfg'}
+
+def html_encode(s):
+    return str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
+
 def render_template(template_name, context):
     """Reads an HTML template and cleanly injects Python dictionary objects using $ placeholders."""
     template_path = os.path.join(TEMPLATE_DIR, template_name)

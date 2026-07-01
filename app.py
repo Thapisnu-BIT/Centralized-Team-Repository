@@ -65,6 +65,9 @@ class RepositoryRequestHandler(BaseHTTPRequestHandler):
         elif path == '/revoke':
             active_project = query.get('project', ['Default'])[0]
             routes.handle_revoke_route(self, query, username, active_project)
+        elif path == '/preview':
+            active_project = query.get('project', ['Default'])[0]
+            routes.handle_preview_route(self, query, active_project, username)
         elif path == '/logout':
             routes.handle_logout_route(self)
         else:

@@ -153,6 +153,53 @@ def handle_rename_route(handler, query, active_project, username):
                 return
     handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Invalid+rename+request')
 
+def handle_preview_route(handler, query, active_project, username):
+    file_id = query.get('id', [None])[0]
+    if not file_id:
+        handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=No+file+specified')
+        return
+    if not database.check_file_read_access(file_id, username):
+        handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=Access+Denied')
+        return
+    file_data = database.get_file_by_id(file_id)
+    if not file_data:
+        handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=File+not+found')
+        return
+    filename, unique_name, version = file_data
+    full_path = os.path.join(config.UPLOAD_DIR, unique_name)
+    if not os.path.exists(full_path):
+        handler.redirect(f'/?project={urllib.parse.quote(active_project)}&error=File+not+found+on+disk')
+        return
+
+    file_size = os.path.getsize(full_path)
+    size_str = helpers.format_bytes(file_size)
+    preview_max = 102400
+
+    if file_size > preview_max:
+        content = f'<div class="file-too-large"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>File too large to preview ({size_str}).<br><a href="/download?id={file_id}&project={urllib.parse.quote(active_project)}" style="color:var(--accent);">Download instead</a></p></div>'
+    elif not helpers.is_text_file(filename):
+        content = f'<div class="unsupported"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg><p>Preview not available for this file type ({size_str}).<br><a href="/download?id={file_id}&project={urllib.parse.quote(active_project)}" style="color:var(--accent);">Download instead</a></p></div>'
+    else:
+        try:
+            with open(full_path, 'r', encoding='utf-8', errors='replace') as f:
+                raw = f.read(preview_max)
+        except:
+            raw = "(Error reading file content)"
+        escaped = helpers.html_encode(raw)
+        content = f'<pre>{escaped}</pre>'
+
+    file_info = f"v{version} &middot; {size_str}"
+    html = helpers.render_template('preview.html', {
+        'filename': filename,
+        'project': active_project,
+        'file_info': file_info,
+        'content': content
+    })
+    handler.send_response(200)
+    handler.send_header('Content-type', 'text/html; charset=utf-8')
+    handler.end_headers()
+    handler.wfile.write(html.encode('utf-8'))
+
 def handle_dashboard_route(handler, query, username, active_project):
     distinct_projects, latest_files, all_versions = database.fetch_dashboard_data(active_project, username)
     other_users = database.fetch_other_users(username)
@@ -264,6 +311,9 @@ def handle_dashboard_route(handler, query, username, active_project):
                 <td style="text-align:right;">
                     <div class="actions-grid">
                         {owner_actions}
+                        <a href="/preview?id={file_id}&project={urllib.parse.quote(active_project)}" class="btn-action btn-preview" title="Preview">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </a>
                         <a href="/download?id={file_id}&project={urllib.parse.quote(active_project)}" class="btn-action btn-download" title="Download">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         </a>
