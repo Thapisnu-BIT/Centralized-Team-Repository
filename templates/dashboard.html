@@ -216,11 +216,27 @@
         function submitShareForm() {
             const fileId = document.getElementById('modal-file-id').value;
             const targetUser = document.getElementById('modal-user-select').value;
+            const privilege = document.getElementById('modal-privilege-select').value;
             if(!targetUser) {
                 alert("Please select a user first.");
                 return;
             }
-            window.location.href = '/share?id=' + fileId + '&project=' + encodeURIComponent(defProject) + '&with=' + encodeURIComponent(targetUser);
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/share';
+            form.style.display = 'none';
+            ['id', 'with', 'project', 'privilege'].forEach(name => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                if (name === 'id') input.value = fileId;
+                else if (name === 'with') input.value = targetUser;
+                else if (name === 'project') input.value = defProject;
+                else if (name === 'privilege') input.value = privilege;
+                form.appendChild(input);
+            });
+            document.body.appendChild(form);
+            form.submit();
         }
     </script>
 </head>
@@ -312,17 +328,26 @@
         const fileId = document.getElementById('modal-file-id').value;
         const targetUser = document.getElementById('modal-user-select').value;
         const privilege = document.getElementById('modal-privilege-select').value;
-        
         if(!targetUser) {
             alert("Please select a target user.");
             return;
         }
-        
-        // Append &privilege parameter dynamically into location redirection strings
-        window.location.href = '/share?id=' + fileId + 
-                               '&project=' + encodeURIComponent(defProject) + 
-                               '&with=' + encodeURIComponent(targetUser) + 
-                               '&privilege=' + encodeURIComponent(privilege);
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/share';
+        form.style.display = 'none';
+        ['id', 'with', 'project', 'privilege'].forEach(name => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            if (name === 'id') input.value = fileId;
+            else if (name === 'with') input.value = targetUser;
+            else if (name === 'project') input.value = defProject;
+            else if (name === 'privilege') input.value = privilege;
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
     }
 </script>
 
